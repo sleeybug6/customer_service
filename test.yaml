@@ -1,0 +1,502 @@
+flows:
+- description: 在聊天窗口初次打开时欢迎用户，并介绍助手可处理的电商服务。这个 flow 通常由系统主动触发。
+  id: onboarding
+  name: 欢迎引导
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: respond
+    type: start
+  - action: action_response
+    args:
+      text: 你好，这里是 Atguigu 电商助手。我可以帮你查订单状态、查物流、了解商品信息，或者提交退款申请。
+    description: ''
+    id: respond
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: 帮用户查询订单当前的处理状态，例如待付款、待发货、已发货或已完成。
+  id: order_status_query
+  name: 订单状态查询
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: ask_order_number
+    type: start
+  - description: ''
+    id: ask_order_number
+    next:
+    - target: lookup_order_status
+    response:
+      mode: static
+      prompt: null
+      text: 请告诉我你的订单号。
+    slot_name: ''
+    type: collect
+    validate: null
+  - action: action_lookup_order_status
+    args: {}
+    description: ''
+    id: lookup_order_status
+    next:
+    - target: show_order_status
+    type: action
+  - action: action_response
+    args:
+      text: 订单{{ slots.order_number }}当前状态是：{{ slots.order_status }}。{{ slots.order_summary
+        }}
+    description: ''
+    id: show_order_status
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: 帮用户查询订单物流进度、物流单号和配送公司信息。
+  id: logistics_tracking
+  name: 物流查询
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: ask_order_number
+    type: start
+  - description: ''
+    id: ask_order_number
+    next:
+    - target: lookup_logistics
+    response:
+      mode: static
+      prompt: null
+      text: 请告诉我你的订单号。
+    slot_name: ''
+    type: collect
+    validate: null
+  - action: action_lookup_logistics
+    args: {}
+    description: ''
+    id: lookup_logistics
+    next:
+    - target: show_logistics
+    type: action
+  - action: action_response
+    args:
+      text: 订单{{ slots.order_number }}由{{ slots.logistics_company }}配送，物流单号是{{ slots.tracking_number
+        }}。当前进度：{{ slots.logistics_status }}。
+    description: ''
+    id: show_logistics
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: 帮用户提交简单的退款申请，收集订单号和退款原因。
+  id: refund_request
+  name: 退款申请
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: ask_order_number
+    type: start
+  - description: ''
+    id: ask_order_number
+    next:
+    - target: ask_refund_reason
+    response:
+      mode: static
+      prompt: null
+      text: 请告诉我你的订单号。
+    slot_name: ''
+    type: collect
+    validate: null
+  - description: ''
+    id: ask_refund_reason
+    next:
+    - target: refund_submitted
+    response:
+      mode: static
+      prompt: null
+      text: 请简单说一下退款原因。
+    slot_name: ''
+    type: collect
+    validate: null
+  - action: action_response
+    args:
+      text: 好的，订单{{ slots.order_number }}的退款申请已提交，原因是：{{ slots.refund_reason }}。后续会尽快为你处理。
+    description: ''
+    id: refund_submitted
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: 基于当前商品为用户推荐类似商品。当前版本先保留流程入口，具体推荐能力后续接入。
+  id: similar_product_recommendation
+  name: 相似商品推荐
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - condition: slots.get('product_id')
+      target: respond
+    - target: missing_product_context
+    type: start
+  - action: action_response
+    args:
+      text: 请先选择一个商品，再继续咨询。
+    description: ''
+    id: missing_product_context
+    next:
+    - target: end
+    type: action
+  - action: action_recommend_similar_products
+    args: {}
+    description: ''
+    id: respond
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: 将当前对话转交给人工客服处理。
+  id: human_handoff
+  name: 人工客服
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: respond
+    type: start
+  - action: action_response
+    args:
+      text: 好的，我来为你转接人工客服，请稍等。
+    description: ''
+    id: respond
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: Flow for acknowledging that a new task has started
+  id: system_task_started
+  name: task started acknowledgement
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: acknowledge
+    type: start
+  - action: action_response
+    args:
+      mode: static
+      text: 好的，我们先处理{{ context.started_flow_name }}。
+    description: ''
+    id: acknowledge
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: Flow for acknowledging that a paused task has been resumed
+  id: system_task_resumed
+  name: task resumed acknowledgement
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: acknowledge
+    type: start
+  - action: action_response
+    args:
+      mode: static
+      text: 好的，我们继续刚才的{{ context.resumed_flow_name }}。
+    description: ''
+    id: acknowledge
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: A flow has been completed and there is nothing else to be done
+  id: system_completed
+  name: completion marker
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: end
+    type: start
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: Flow for handling requests the assistant cannot support
+  id: system_cannot_handle
+  name: cannot handle request
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - condition: context.get('reason') == 'clarification_rejected'
+      target: clarification_rejected
+    - condition: context.get('reason') == 'not_supported'
+      target: not_supported
+    - condition: context.get('reason') == 'no_relevant_answer'
+      target: no_relevant_answer
+    - target: ask_rephrase
+    type: start
+  - action: action_response
+    args:
+      mode: rephrase
+      prompt: '你是一个中文电商客服助手，语气自然、友好、简洁。
+
+        请基于下面的建议回复，生成一句更自然的中文回复，保持原意，不要扩写。
+
+        对话上下文：
+
+        {{ history }}
+
+        用户最后一句：
+
+        用户：{{ user_message }}
+
+        建议回复：{{ current_response }}
+
+        改写后的回复：
+
+        '
+      text: 看来我刚才理解偏了。你可以重新说一下你想查订单、查物流，还是申请退款吗？
+    description: ''
+    id: clarification_rejected
+    next:
+    - target: end
+    type: action
+  - action: action_response
+    args:
+      mode: rephrase
+      prompt: '你是一个中文电商客服助手，语气自然、友好、简洁。
+
+        请基于下面的建议回复，生成一句更自然的中文回复，保持原意，不要扩写。
+
+        对话上下文：
+
+        {{ history }}
+
+        用户最后一句：
+
+        用户：{{ user_message }}
+
+        建议回复：{{ current_response }}
+
+        改写后的回复：
+
+        '
+      text: 我理解你的意思，不过这个能力目前还没有接入。
+    description: ''
+    id: not_supported
+    next:
+    - target: end
+    type: action
+  - action: action_response
+    args:
+      mode: rephrase
+      prompt: '你是一个中文电商客服助手，语气自然、友好、简洁。
+
+        请基于下面的建议回复，生成一句更自然的中文回复，保持原意，不要扩写。
+
+        对话上下文：
+
+        {{ history }}
+
+        用户最后一句：
+
+        用户：{{ user_message }}
+
+        建议回复：{{ current_response }}
+
+        改写后的回复：
+
+        '
+      text: 我暂时没有查到合适的信息。你可以换个说法，或者告诉我更具体一点的商品或订单信息。
+    description: ''
+    id: no_relevant_answer
+    next:
+    - target: end
+    type: action
+  - action: action_response
+    args:
+      mode: rephrase
+      prompt: '你是一个中文电商客服助手，语气自然、友好、简洁。
+
+        请基于下面的建议回复，生成一句更自然的中文回复，保持原意，不要扩写。
+
+        对话上下文：
+
+        {{ history }}
+
+        用户最后一句：
+
+        用户：{{ user_message }}
+
+        建议回复：{{ current_response }}
+
+        改写后的回复：
+
+        '
+      text: 抱歉，我这边没有完全听明白。你可以再具体说一下你想处理什么电商问题吗？
+    description: ''
+    id: ask_rephrase
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: Flow for asking the user for a slot value during a collect step
+  id: system_collect_information
+  name: collect information
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: ask
+    type: start
+  - action: action_response
+    args: context.response
+    description: ''
+    id: ask
+    next:
+    - target: listen
+    type: action
+  - action: action_listen
+    args: {}
+    description: ''
+    id: listen
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: Flow for acknowledging that the current task has been interrupted
+  id: system_task_interrupted
+  name: task interrupted acknowledgement
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: acknowledge
+    type: start
+  - action: action_response
+    args:
+      mode: static
+      text: 好的，我们先把{{ context.interrupted_flow_name }}放一放，先处理{{ context.started_flow_name
+        }}。
+    description: ''
+    id: acknowledge
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+- description: Flow for acknowledging that the current task was canceled
+  id: system_task_canceled
+  name: task canceled acknowledgement
+  slots: []
+  steps:
+  - description: ''
+    id: start
+    next:
+    - target: acknowledge
+    type: start
+  - action: action_response
+    args:
+      mode: static
+      text: 好的，{{ context.canceled_flow_name }}先帮你取消。
+    description: ''
+    id: acknowledge
+    next:
+    - target: end
+    type: action
+  - description: ''
+    id: end
+    next: []
+    type: end
+slots:
+  logistics_company:
+    description: 物流公司名称
+    label: 物流公司
+    name: logistics_company
+    type: text
+  logistics_status:
+    description: 物流当前进度
+    label: 物流进度
+    name: logistics_status
+    type: text
+  order_number:
+    description: 用户的订单号
+    label: 订单号
+    name: order_number
+    type: text
+  order_status:
+    description: 订单当前状态
+    label: 订单状态
+    name: order_status
+    type: text
+  order_summary:
+    description: 订单摘要信息
+    label: 订单摘要
+    name: order_summary
+    type: text
+  product_id:
+    description: 当前咨询商品的唯一标识
+    label: 商品ID
+    name: product_id
+    type: text
+  refund_reason:
+    description: 申请退款的原因
+    label: 退款原因
+    name: refund_reason
+    type: text
+  tracking_number:
+    description: 物流单号
+    label: 物流单号
+    name: tracking_number
+    type: text
